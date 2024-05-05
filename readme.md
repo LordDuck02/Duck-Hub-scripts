@@ -6,7 +6,7 @@ Some of the scripts are rushed, but dont worry, I always fix em.
 
 # Script loader #
 ```lua
-  print("Placeholder")
+loadstring(game:HttpGet("https://raw.githubusercontent.com/LordDuck02/Duck-Hub-scripts/main/loader.lua"))()
 ```
 
 
