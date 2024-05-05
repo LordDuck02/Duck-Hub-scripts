@@ -1,3 +1,4 @@
+print("Loading") -- Useless
 local plrs = game:GetService("Players")
 local cc = workspace.CurrentCamera
 local lp = plrs.LocalPlayer
