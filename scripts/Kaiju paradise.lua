@@ -1,3 +1,4 @@
+print("Loading kaiju paradise")
 local ws = game:GetService("Workspace")
 local plrs = game:GetService("Players")
 local lp = plrs.LocalPlayer
