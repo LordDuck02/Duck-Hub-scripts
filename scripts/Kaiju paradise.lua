@@ -1,32 +1,33 @@
-print("Loading kaiju paradise")
-local ws = game:GetService("Workspace")
-local plrs = game:GetService("Players")
-local lp = plrs.LocalPlayer
+local ws = game:FindFirstChildOfClass("Workspace")
+local plrs = game:FindFirstChildOfClass("Players")
 local Orion = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
+
+local lp = plrs.LocalPlayer
+local char = lp.Character
+local hum = char.Humanoid
+local cc = ws.CurrentCamera
 
 local itemSpots = {"KnifeSpot", "KatanaSpot", "ScytheSpot", "TaserSpot"}
 local foodSpots = {}
-
-local checkChild = false
-
 
 local function addUI(part)
     local partGui = Instance.new("BillboardGui", part)
     partGui.Size = UDim2.new(2, 0, 2, 0)
     partGui.AlwaysOnTop = true
     partGui.Name = "Item ESP"
+    
     local frame = Instance.new("Frame", partGui)
-    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 150)  
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 150)
     frame.BackgroundTransparency = 1
     frame.Size = UDim2.new(1.3, 0, 1.3, 0)
-    frame.BorderSizePixel = 0 
-
+    frame.BorderSizePixel = 0
+    
     local nameGUI = Instance.new("BillboardGui", part)
     nameGUI.Size = UDim2.new(3, 0, 1.5, 0)
     nameGUI.SizeOffset = Vector2.new(0, 1)
     nameGUI.AlwaysOnTop = true
     nameGUI.Name = "Name"
-
+    
     local text = Instance.new("TextLabel", nameGUI)
     text.Font = Enum.Font.GothamSemibold
     text.Name = "Text"
@@ -36,6 +37,23 @@ local function addUI(part)
     text.BackgroundTransparency = 1
     text.TextScaled = true
     text.Size = UDim2.new(1, 0, 1, 0)
+end
+
+local function monitorNewItems()
+    local itemSpotsFolder = ws:FindFirstChild("Scripted"):FindFirstChild("ItemSpawner")
+    
+    if itemSpotsFolder then
+        for _, spotName in ipairs(itemSpots) do
+            local spotFolder = itemSpotsFolder:FindFirstChild(spotName)
+            
+            if spotFolder then
+                spotFolder.ChildAdded:Connect(function(newItem)
+                    addUI(newItem)
+                    Instance.new("Highlight", newItem)
+                end)
+            end
+        end
+    end
 end
 
 local function itemESP()
@@ -49,13 +67,72 @@ local function itemESP()
     end
 end
 
-local function allESP()
-    for _, player in ipairs(plrs:GetChildren()) do 
-            addUI(player)
+plrs.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        addUI(character.Head or character.PrimaryPart)
+    end)
+end)
+
+
+local function addLineESP(target)
+    local line = Drawing.new("Line")
+    line.Color = Color3.fromRGB(255, 0, 0)
+    line.Thickness = 2
+    line.Transparency = 1
+    line.Visible = true
+
+    local function updateLine()
+        if target and target:FindFirstChild("HumanoidRootPart") then
+            line.From = cc:WorldToViewportPoint(lp.Character.HumanoidRootPart.Position)
+            line.To = cc:WorldToViewportPoint(target.HumanoidRootPart.Position)
+        else
+            line:Remove()
         end
+    end
+
+    local conn = game:GetService("RunService").RenderStepped:Connect(updateLine)
+
+    target.AncestryChanged:Connect(function(_, parent)
+        if not parent then
+            line:Remove()
+            conn:Disconnect()
+        end
+    end)
+end
+
+
+local function allLineESP()
+    for _, player in ipairs(plrs:GetPlayers()) do
+        if player ~= lp and player.Character then
+            addLineESP(player.Character)
+        end
+    end
+end
+
+local function createSlider(tab, name, min, max, default, color, increment, valueName, callback)
+    tab:AddSlider({
+        Name = name,
+        Min = min,
+        Max = max,
+        Default = default,
+        Color = color,
+        Increment = increment,
+        ValueName = valueName,
+        Callback = callback
+    })
 end
 
 local Window = Orion:MakeWindow({Name = "Kaiju Paradise - Duck hub", HidePremium = false, SaveConfig = true, ConfigFolder = "OrionTest"})
+
+local genTab = Window:MakeTab({
+    Name = "Items",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+createSlider(genTab, "FOV", 0, 120, 70, Color3.fromRGB(255, 255, 255), 1, "Valor", function(value)
+    cc.FieldOfView = value
+end)
 
 local VisualTab = Window:MakeTab({
     Name = "Visuals",
@@ -63,24 +140,17 @@ local VisualTab = Window:MakeTab({
     PremiumOnly = false
 })
 
-VisualTab:AddToggle({
+VisualTab:AddButton({
     Name = "ESP",
-    Default = false,
-    Callback = allESP()
+    Callback = function()
+        allLineESP()
+    end
 })
 
-VisualTab:AddToggle({
+VisualTab:AddButton({
     Name = "Item ESP",
-    Default = false,
-    Callback = itemESP()
-})
-
-local Section = VisualTab:AddSection({
-	Name = "Event items"
-})
-
-local ItemsTab = Window:MakeTab({
-    Name = "Items",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
+    Callback = function()
+        itemESP()
+        monitorNewItems()
+    end
 })
